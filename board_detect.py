@@ -1,3 +1,4 @@
+import sys
 from detect import capture_screenshot
 
 IDENTIFIER = 'BOARD_CAMERA'
@@ -19,16 +20,25 @@ def sendToServer(cards: [str]):
     pass
 
 if __name__ == '__main__':
-    server_ip = sys.argv[1]
-    client_ip = sys.argv[2]
-    server_port = sys.argv[3]
-    client_port = sys.argv[4]
+    screenshot_filename = 'data/board.png'
+
+    # Not enough command line arguments entered, 
+    # assume we are purposefully debugging
+    if(len(sys.argv) < 6):
+        print("-------------------- DEBUG MODE --------------------")
+        capture_screenshot(screenshot_filename, print)    
+        exit()
+    
+    server_ip = sys.argv[2]
+    client_ip = sys.argv[3]
+    server_port = sys.argv[4]
+    client_port = sys.argv[5]
 
     # Set up connection as client (hand camera) to server
     createConnection(server_ip, server_port, client_ip, client_port)
 
     # Start capturing screenshots and send back to server with callback
-    capture_screenshot('data/board.png', sendToServer)
+    capture_screenshot(screenshot_filename, sendToServer)
 
     # Uncomment this line to test with simply printing the cards
-    # capture_screenshot('data/board.png', print)
+    # capture_screenshot(screenshot_filename, print)

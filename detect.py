@@ -118,7 +118,7 @@ def capture_screenshot(screenshot_filename, callback = None):
             cv2.imwrite(screenshot_filename, frame)
             print(f"Screenshot saved as {screenshot_filename}")
             cards = analyze_screenshot(screenshot_filename)
-            if(len(cards) != 0 and callback != None):
+            if(len(cards) != 0 and 'None' not in cards and 'Error' not in cards and callback != None):
                 callback(cards)
             
         
