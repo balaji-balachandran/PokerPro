@@ -17,5 +17,6 @@ while True:
 
     # Wait for the speaking to finish
     engine.runAndWait()
+    print("done")
 
-    time.sleep(60)
+    time.sleep(2)

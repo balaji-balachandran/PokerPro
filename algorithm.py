@@ -32,19 +32,26 @@ def drawCard(deck):
 
 # Function that returns 1 if you win against
 # ALL other hands and 0 if you lose to some hand
-# 0 if you split
+# 2 if you split
 def IWin(my_hand, other_hands):
     willSplit = False
 
     for other_hand in other_hands:
         if(my_hand[0] < other_hand[0]):
-            return False
+            return 0
         elif(my_hand[0] > other_hand[0]):
             continue
         # TODO: Handle tie break cases
+        tiebreak_result = tiebreak(my_hand[1], other_hand[1])
+        if(tiebreak_result == 1):
+            continue
+        elif(tiebreak_result == 2):
+            return 0
+        else:
+            willSplit = True
 
     # Only return true if we won't split
-    return not willSplit
+    return 2 if willSplit else 1
 
 # Returns a tuple of (Hand type, 'highness' of Hand)
 # E.g. pair of aces would return ()
@@ -77,8 +84,8 @@ def MakeBestHand(hand, board):
                group[i+2] == group[i] + 2 and \
                group[i+3] == group[i] + 3 and \
                group[i+4] == group[i] + 4:
-                return [ROYAL_FLUSH, None] if ((group[i] + 4) % 13) == 12 else \
-                       [STRAIGHT_FLUSH, (group[i] + 4) % 13] 
+                return [ROYAL_FLUSH, [0]] if ((group[i] + 4) % 13) == 12 else \
+                       [STRAIGHT_FLUSH, [(group[i] + 4) % 13]]
 
     # Calculate rank differences
     card_ranks = [0] * 13
@@ -91,7 +98,7 @@ def MakeBestHand(hand, board):
             # Determine our kicker
             for j in range(len(card_ranks) - 1, -1, -1):
                 if 0 < card_ranks[j] < 4:
-                    return [QUADS, i, j]
+                    return [QUADS, [i, j]]
 
             # We should never get here
             return [None, None, None]
@@ -108,7 +115,7 @@ def MakeBestHand(hand, board):
         for j in range(len(card_ranks) - 1, -1, -1):
             if(card_ranks[j] >= 2 and triple != j):
                 pair = j
-                return [FULL_HOUSE, triple, pair]
+                return [FULL_HOUSE, [triple, pair]]
 
     # Flush Check
     for group in [clubs, diamonds, hearts, spades]:
@@ -125,7 +132,16 @@ def MakeBestHand(hand, board):
            card_ranks[i + 2] > 0 and \
            card_ranks[i + 3] > 0 and \
            card_ranks[i + 4] > 0):
-           return [STRAIGHT, i + 4]
+           return [STRAIGHT, [i + 4]]
+        
+    # Check for A-5 Straight
+    if( card_ranks[-1] > 0 and \
+        card_ranks[0] > 0 and \
+        card_ranks[1] > 0 and \
+        card_ranks[2] > 0 and \
+        card_ranks[3] > 0 
+    ):
+        return [STRAIGHT, [3]]
 
     for i in range(len(card_ranks)):
         # Trips check 
@@ -135,7 +151,7 @@ def MakeBestHand(hand, board):
                 if 0 < card_ranks[j] < 3:
                     for k in range(j - 1, -1, -1):
                         if 0 < card_ranks[k] < 3:
-                            return [TRIPS, i, j, k]
+                            return [TRIPS, [i, j, k]]
 
             # We should never get here
             return [None, None, None]
@@ -154,33 +170,70 @@ def MakeBestHand(hand, board):
                 break
         for i in range(len(card_ranks) - 1, -1, -1):
             if card_ranks[i] == 1:
-                return [TWO_PAIR, higher_pair, lower_pair, i]
+                return [TWO_PAIR, [higher_pair, lower_pair, i]]
         
-        return [None, None, None]
+        return [None, None, None, None]
 
     # Pair check
+    for i in range(len(card_ranks)):
+        if(card_ranks[i] == 2):
+            card_ranks[i] = 0
+
+            highest = None
+            middle = None
+            lowest = None
+            for j in range(len(card_ranks) - 1, -1, -1):
+                if(card_ranks[j] == 1 and highest == None):
+                    highest = j
+                elif(card_ranks[j] == 1 and middle == None):
+                    middle = j
+                elif(card_ranks[j] == 1 and lowest == None):
+                    lowest = j
+                    return[PAIR, [i, highest, middle, lowest]]
+            return [None]
+
+    # High card
+    largest_five = sorted([i for i, x in enumerate(card_ranks) if x == 1], reverse=True)[:5]
+    return [HIGH_CARD, largest_five]
     
+# Returns 1 if player one wins, 2 if player 2 wins,
+# or 0 if it is truly a tie
+def tiebreak(tiebreak_array_1, tiebreak_array_2):
+    for i in range(len(tiebreak_array_1)):
+        tiebreak_1 = tiebreak_array_1[i]
+        tiebreak_2 = tiebreak_array_2[i]
+        if(tiebreak_1 > tiebreak_2):
+            return 1
+        elif(tiebreak_2 > tiebreak_1):
+            return 2
 
+    return 0
 
-    return [0, 1]
-    pass
-    
+# Given two cards and (optionally) a board
+# Determine odds of creating each type of hand
+# Calculate global odds of winning
 
-# Given two cards and an empty board 
-# Takes tuple and returns odds 
-def getPreflopOdds(my_hand, num_players, num_trials = 1000):
+# Monte Carlo simulation approach, we run over 
+# numerous trials to get de
+def getHandOdds(my_hand, num_players, board = [], num_trials = 1000):
     deck = list(range(52))
     # Remove our cards from the deck
     for card in my_hand:
         deck.remove(card)
 
+    # Remove cards on the board from the deck
+    for card in board:
+        deck.remove(card)
+
     wins = 0
     hand_type_count = [0] * 10
 
-    # For our hand, simulate a bunch of trials
+    hands_seen = set()
+    # For our hand and current board simulate a bunch of trials
     for i in range(num_trials):
         # Create a copy of the deck
         trial_deck = deepcopy(deck)
+        trial_board = deepcopy(board)
         
         # Give everyone
         player_hands = []
@@ -189,18 +242,24 @@ def getPreflopOdds(my_hand, num_players, num_trials = 1000):
             second_card = drawCard(trial_deck)
             player_hands.append((first_card, second_card))
         
-        board = [drawCard(trial_deck) for j in range(5)]
+        for j in range(5 - len(board)):
+            trial_board.append(drawCard(trial_deck))
+
         # Uncomment to simulate a board
-        # board = [0, 10, 20, 25, 51]
+        # trial_board = [0, 10, 20, 25, 51]
 
-        my_best_hand = MakeBestHand(my_hand, board)
+        my_best_hand = MakeBestHand(my_hand, trial_board)
 
-        other_hands = [MakeBestHand(player_hand, board) for player_hand in player_hands]
+        other_hands = [MakeBestHand(player_hand, trial_board) for player_hand in player_hands]
         if(IWin(my_best_hand, other_hands)):
             wins += 1
         
         # Add your hand to the dictionary of what you can create
         my_type = my_best_hand[0]
+        if(my_type not in hands_seen):
+            hands_seen.add(my_type)
+            print(my_best_hand, [convertNumericToLabel(my_hand[0]), convertNumericToLabel(my_hand[1])] + [convertNumericToLabel(l) for l in trial_board])
+            
         hand_type_count[my_type] += 1
 
     # Normalize wins and count of each hand type by the number of trials
@@ -240,6 +299,29 @@ def convertLabelToNumeric(card):
 
     return offset + num    
 
+def convertNumericToLabel(card):
+    rank = card % 13
+    if(rank == 12):
+        rank = 'A'
+    elif(rank == 11):
+        rank = 'K'
+    elif(rank == 10):
+        rank = 'Q'
+    elif(rank == 9):
+        rank = 'J'
+    else: 
+        rank += 2
+
+    suit = card // 13
+    if(suit == 0):
+        return str(rank)+'C'
+    elif(suit == 1):
+        return str(rank)+'D'
+    elif(suit == 2):
+        return str(rank)+'H'
+    elif(suit == 3):
+        return str(rank)+'S'
+
 if __name__ == '__main__':
     # Number of players at the table including yourself
     num_players = None
@@ -254,11 +336,12 @@ if __name__ == '__main__':
 
 
     # Get player hand and board from cameras
-    labeled_hand = ["AH", "KS"]
+    labeled_hand = ["AH", "5H"]
 
     hand = tuple([convertLabelToNumeric(card) for card in labeled_hand])
-
-    win_probability, hand_probabilities = getPreflopOdds(hand, num_players)
+    board = [convertLabelToNumeric(card) for card in ['2S', '3S', '4S']]
+    # print([convertNumericToLabel(i) for i in hand])
+    win_probability, hand_probabilities = getPreflopOdds(hand, num_players, board, num_trials = 10000)
     print(win_probability, hand_probabilities)
 
     
