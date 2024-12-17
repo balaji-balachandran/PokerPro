@@ -218,12 +218,15 @@ def tiebreak(tiebreak_array_1, tiebreak_array_2):
 def getHandOdds(my_hand, num_players, board = [], num_trials = 1000):
     deck = list(range(52))
     # Remove our cards from the deck
+
     for card in my_hand:
-        deck.remove(card)
+        if card in deck:
+            deck.remove(card)
 
     # Remove cards on the board from the deck
     for card in board:
-        deck.remove(card)
+        if card in deck:
+            deck.remove(card)
 
     wins = 0
     hand_type_count = [0] * 10
@@ -256,9 +259,9 @@ def getHandOdds(my_hand, num_players, board = [], num_trials = 1000):
         
         # Add your hand to the dictionary of what you can create
         my_type = my_best_hand[0]
-        if(my_type not in hands_seen):
-            hands_seen.add(my_type)
-            print(my_best_hand, [convertNumericToLabel(my_hand[0]), convertNumericToLabel(my_hand[1])] + [convertNumericToLabel(l) for l in trial_board])
+        # if(my_type not in hands_seen):
+        #     hands_seen.add(my_type)
+            # print(my_best_hand, [convertNumericToLabel(my_hand[0]), convertNumericToLabel(my_hand[1])] + [convertNumericToLabel(l) for l in trial_board])
             
         hand_type_count[my_type] += 1
 
@@ -341,7 +344,7 @@ if __name__ == '__main__':
     hand = tuple([convertLabelToNumeric(card) for card in labeled_hand])
     board = [convertLabelToNumeric(card) for card in ['2S', '3S', '4S']]
     # print([convertNumericToLabel(i) for i in hand])
-    win_probability, hand_probabilities = getPreflopOdds(hand, num_players, board, num_trials = 10000)
+    win_probability, hand_probabilities = getHandOdds(hand, num_players, board, num_trials = 10000)
     print(win_probability, hand_probabilities)
 
     

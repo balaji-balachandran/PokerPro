@@ -98,8 +98,6 @@ def capture_screenshot(screenshot_filename, callback = None):
         print("Error: Could not open webcam.")
         return
 
-    print("Press 's' to take a screenshot or 'q' to quit.")
-
     while True:
         # Read frames from the webcam
         ret, frame = cap.read()
@@ -111,18 +109,18 @@ def capture_screenshot(screenshot_filename, callback = None):
         # Display the webcam feed
         cv2.imshow("Webcam Feed", frame)
 
-        # Check for key presses
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('s'):  # Press 's' to save a screenshot
             
-            cv2.imwrite(screenshot_filename, frame)
-            print(f"Screenshot saved as {screenshot_filename}")
-            cards = analyze_screenshot(screenshot_filename)
-            if(len(cards) != 0 and 'None' not in cards and 'Error' not in cards and callback != None):
-                callback(cards)
-            
+        cv2.imwrite(screenshot_filename, frame)
+        print(f"Screenshot saved as {screenshot_filename}")
+        cards = analyze_screenshot(screenshot_filename)
+        # if(len(cards) != 0 and 'None' not in cards and 'Error' not in cards and callback != None):
+        if('Error' not in cards and callback != None):
+            callback(cards)
         
-        elif key == ord('q'):  # Press 'q' to quit
+        time.sleep(3)
+
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):  # Press 'q' to quit
             print("Exiting...")
             break
 
